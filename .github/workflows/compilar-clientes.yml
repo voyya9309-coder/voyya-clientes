@@ -1,0 +1,53 @@
+name: Compilar APK Clientes desde ZIP
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Descomprimir el proyecto
+        run: |
+          ls -la
+          unzip -q VoyYa-Clientes.zip -d proyecto
+          ls -la proyecto
+
+      - name: Instalar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      - name: Compilar APK
+        working-directory: proyecto
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Renombrar APK
+        run: cp proyecto/app/build/outputs/apk/release/app-release.apk VoyYa-Clientes.apk
+
+      - name: Guardar APK como archivo descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoyYa-Clientes-APK
+          path: VoyYa-Clientes.apk
+
+      - name: Publicar APK en Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: clientes-${{ github.run_number }}
+          name: APK Clientes #${{ github.run_number }}
+          files: VoyYa-Clientes.apk
